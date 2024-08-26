@@ -1,0 +1,160 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient; // Thêm thư viện cho SQL
+using System.IO;
+using Newtonsoft.Json; // Thêm thư viện cho JSON
+
+public class CHanghoa
+{
+    public int id { get; set; }
+    public string mavach { get; set; } = string.Empty; // Khởi tạo mặc định là chuỗi rỗng
+    public string ten { get; set; } = string.Empty;
+    public decimal gianhap { get; set; }
+    public decimal giaban { get; set; }
+    public string ghichu { get; set; } = string.Empty;
+}
+
+class Program
+{
+    // Hàm nhập số nguyên dương trong khoảng từ 2 đến 10
+    public static int NhapSo()
+    {
+        int n;
+        do
+        {
+            Console.Write("Nhập vào số nguyên dương n (từ 2 đến 10): ");
+            n = Convert.ToInt32(Console.ReadLine());
+            if (n < 2 || n > 10)
+            {
+                Console.WriteLine("Giá trị nhập không hợp lệ. Vui lòng nhập lại.");
+            }
+        } while (n < 2 || n > 10);
+
+        return n;
+    }
+
+    // Hàm nhập các đối tượng Hàng hóa vào List
+    public static List<CHanghoa> NhapHangHoa(int n)
+    {
+        List<CHanghoa> hanghoaList = new List<CHanghoa>();
+
+        for (int i = 0; i < n; i++)
+        {
+            try
+            {
+                Console.Write("Nhập id (nhập '#' để kết thúc): ");
+                string idInput = Console.ReadLine();
+                if (idInput == "#") break;
+
+                int id = Convert.ToInt32(idInput);
+
+                CHanghoa hanghoa = new CHanghoa();
+                hanghoa.id = id;
+
+                Console.Write("Nhập mã vạch: ");
+                hanghoa.mavach = Console.ReadLine() ?? string.Empty;
+
+                Console.Write("Nhập tên hàng hóa: ");
+                hanghoa.ten = Console.ReadLine() ?? string.Empty;
+
+                Console.Write("Nhập giá nhập: ");
+                hanghoa.gianhap = Convert.ToDecimal(Console.ReadLine());
+
+                Console.Write("Nhập giá bán: ");
+                hanghoa.giaban = Convert.ToDecimal(Console.ReadLine());
+
+                Console.Write("Nhập ghi chú: ");
+                hanghoa.ghichu = Console.ReadLine() ?? string.Empty;
+
+                hanghoaList.Add(hanghoa);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi: {ex.Message}. Vui lòng nhập lại.");
+                i--;
+            }
+        }
+
+        return hanghoaList;
+    }
+
+    // Duyệt và hiển thị các hàng hóa có giá nhập >= 100000
+    public static void HienThiHangHoa(List<CHanghoa> hanghoaList)
+    {
+        foreach (var hanghoa in hanghoaList)
+        {
+            if (hanghoa.gianhap >= 100000)
+            {
+                Console.WriteLine($"ID: {hanghoa.id}, Tên: {hanghoa.ten}, Giá nhập: {hanghoa.gianhap}");
+            }
+        }
+    }
+
+    // Hàm kết nối với CSDL và lưu dữ liệu
+    public static bool LuuDB(List<CHanghoa> hanghoaList)
+    {
+        try
+        {
+            using (SqlConnection conn = new SqlConnection("Server=localhost;Database=Hanghoa;User Id=sa;Password=Password.1;\n"))
+            {
+                conn.Open();
+                foreach (var hanghoa in hanghoaList)
+                {
+                    string query = "INSERT INTO tblHanghoa (id, mavach, ten, gianhap, giaban, ghichu) VALUES (@id, @mavach, @ten, @gianhap, @giaban, @ghichu)";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", hanghoa.id);
+                        cmd.Parameters.AddWithValue("@mavach", hanghoa.mavach);
+                        cmd.Parameters.AddWithValue("@ten", hanghoa.ten);
+                        cmd.Parameters.AddWithValue("@gianhap", hanghoa.gianhap);
+                        cmd.Parameters.AddWithValue("@giaban", hanghoa.giaban);
+                        cmd.Parameters.AddWithValue("@ghichu", hanghoa.ghichu);
+
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi khi lưu dữ liệu vào CSDL: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Hàm xuất dữ liệu ra file JSON
+    public static void XuatJSON(List<CHanghoa> hanghoaList)
+    {
+        string json = JsonConvert.SerializeObject(hanghoaList, Newtonsoft.Json.Formatting.Indented);
+        File.WriteAllText("hanghoa.json", json);
+    }
+
+    static void Main(string[] args)
+    {
+        // Gọi hàm nhập số
+        int so = NhapSo();
+        Console.WriteLine($"Bạn đã nhập số: {so}");
+
+        // Gọi hàm nhập Hàng hóa
+        List<CHanghoa> hanghoa1 = NhapHangHoa(so);
+
+        // Gọi hàm hiển thị Hàng hóa
+        HienThiHangHoa(hanghoa1);
+
+        // Gọi hàm lưu Hàng hóa vào CSDL
+        bool luuThanhCong = LuuDB(hanghoa1);
+        if (luuThanhCong)
+        {
+            Console.WriteLine("Dữ liệu đã được lưu thành công vào CSDL.");
+        }
+        else
+        {
+            Console.WriteLine("Lưu dữ liệu không thành công.");
+        }
+
+        // Gọi hàm xuất dữ liệu ra file JSON
+        XuatJSON(hanghoa1);
+        Console.WriteLine("Dữ liệu đã được xuất ra file JSON.");
+    }
+}
