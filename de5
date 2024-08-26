@@ -1,0 +1,146 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+public class CHanhoa
+{
+    public int id { get; set; }
+    public string mavach { get; set; }
+    public string ten { get; set; }
+    public decimal gianhap { get; set; }
+    public decimal giaban { get; set; }
+    public string ghichu { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Câu 2: Nhập số nguyên dương n trong khoảng từ 2 đến 10
+        int n = NhapSoNguyenDuong();
+
+        // Câu 3a: Nhập danh sách hàng hóa
+        List<CHanhoa> hanghoa1 = NhapHanghoa(n);
+
+        // Câu 3b: Hiển thị các hàng hóa có giá nhập >= 100000
+        Console.WriteLine("Danh sách hàng hóa có giá nhập >= 100000:");
+        foreach (var hh in hanghoa1.Where(hh => hh.gianhap >= 100000))
+        {
+            Console.WriteLine($"ID: {hh.id}, Mã vạch: {hh.mavach}, Tên: {hh.ten}, Giá nhập: {hh.gianhap}, Giá bán: {hh.giaban}, Ghi chú: {hh.ghichu}");
+        }
+
+        // Câu 3c: Đặt hàm LuuDB vào thực hiện trong một thread
+        Thread thread = new Thread(() =>
+        {
+            bool success = LuuDB(hanghoa1);
+            if (!success)
+            {
+                Console.WriteLine("Lưu dữ liệu không thành công.");
+            }
+        });
+        thread.Start();
+        thread.Join(); // Chờ cho thread hoàn thành
+
+        Console.WriteLine("Đã thực hiện xong việc lưu dữ liệu.");
+
+        // Câu 3d: Xuất dữ liệu ra file CSV
+        XuatCSV(hanghoa1);
+    }
+
+    // Câu 2: Hàm nhập số nguyên dương n trong khoảng từ 2 đến 10
+    public static int NhapSoNguyenDuong()
+    {
+        int n;
+        do
+        {
+            Console.Write("Nhập số nguyên dương n (2 <= n <= 10): ");
+        } while (!int.TryParse(Console.ReadLine(), out n) || n < 2 || n > 10);
+        return n;
+    }
+
+    // Câu 3a: Nhập danh sách hàng hóa
+    public static List<CHanhoa> NhapHanghoa(int n)
+    {
+        List<CHanhoa> hanghoaList = new List<CHanhoa>();
+        for (int i = 0; i < n; i++)
+        {
+            Console.WriteLine($"Nhập thông tin hàng hóa thứ {i + 1}:");
+            CHanhoa hh = new CHanhoa();
+
+            Console.Write("ID: ");
+            string idInput = Console.ReadLine();
+            if (idInput == "#") break;
+            hh.id = int.Parse(idInput);
+
+            Console.Write("Mã vạch: ");
+            hh.mavach = Console.ReadLine();
+
+            Console.Write("Tên: ");
+            hh.ten = Console.ReadLine();
+
+            Console.Write("Giá nhập: ");
+            hh.gianhap = decimal.Parse(Console.ReadLine());
+
+            Console.Write("Giá bán: ");
+            hh.giaban = decimal.Parse(Console.ReadLine());
+
+            Console.Write("Ghi chú: ");
+            hh.ghichu = Console.ReadLine();
+
+            hanghoaList.Add(hh);
+        }
+        return hanghoaList;
+    }
+
+    // Câu 3c: Lưu dữ liệu vào cơ sở dữ liệu
+    public static bool LuuDB(List<CHanhoa> hanghoaList)
+    {
+        try
+        {
+            string connectionString = "Server=localhost;Database=Hanghoa;User Id=sa;Password=Password.1;";
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                foreach (var hanghoa in hanghoaList)
+                {
+                    string query = "INSERT INTO tblHanghoa (id, mavach, ten, gianhap, giaban, ghichu) VALUES (@id, @mavach, @ten, @gianhap, @giaban, @ghichu)";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", hanghoa.id);
+                        cmd.Parameters.AddWithValue("@mavach", hanghoa.mavach);
+                        cmd.Parameters.AddWithValue("@ten", hanghoa.ten);
+                        cmd.Parameters.AddWithValue("@gianhap", hanghoa.gianhap);
+                        cmd.Parameters.AddWithValue("@giaban", hanghoa.giaban);
+                        cmd.Parameters.AddWithValue("@ghichu", hanghoa.ghichu);
+
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi khi lưu dữ liệu vào CSDL: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Câu 3d: Xuất dữ liệu ra file CSV
+    public static void XuatCSV(List<CHanhoa> hanghoaList)
+    {
+        string filePath = "hanghoa.csv";
+        using (StreamWriter sw = new StreamWriter(filePath))
+        {
+            sw.WriteLine("ID,Mã vạch,Tên,Giá nhập,Giá bán,Ghi chú");
+            foreach (var hh in hanghoaList)
+            {
+                sw.WriteLine($"{hh.id},{hh.mavach},{hh.ten},{hh.gianhap},{hh.giaban},{hh.ghichu}");
+            }
+        }
+        Console.WriteLine($"Dữ liệu đã được xuất ra file {filePath}");
+    }
+}
