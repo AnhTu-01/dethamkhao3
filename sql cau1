@@ -1,0 +1,22 @@
+-- Tạo cơ sở dữ liệu Hanghoa
+CREATE DATABASE Hanghoa;
+
+-- Sử dụng cơ sở dữ liệu Hanghoa
+USE Hanghoa;
+
+-- Tạo bảng tblHanghoa
+CREATE TABLE tblHanghoa (
+    ID CHAR(5) PRIMARY KEY,
+    MaVach CHAR(13) NOT NULL,
+    Ten NVARCHAR(200),
+    GiaNhap FLOAT,
+    GiaBan FLOAT,
+    GhiChu NVARCHAR(MAX)
+);
+INSERT INTO tblHanghoa (ID, MaVach, Ten, GiaNhap, GiaBan, GhiChu)
+VALUES
+('00001', '1234567890123', N'Sản phẩm A', 10000, 15000, N'Ghi chú A'),
+('00002', '2345678901234', N'Sản phẩm B', 20000, 25000, N'Ghi chú B'),
+('00003', '3456789012345', N'Sản phẩm C', 30000, 35000, N'Ghi chú C');
+
+select * from tblHanghoa
